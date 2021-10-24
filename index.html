@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="description" content="A simple to use, offline, phonetic translator.">
+ <meta name="author" content="vicsar - 7411419+vicsar@users.noreply.github.com">
+
+    <title>.: NATO translator :.</title>
+
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        padding: 10px;
+        background: #3f3f3f;
+        color: #dcdccc;
+      }
+
+      * {
+        box-sizing: border-box;
+        max-width: 100%;
+      }
+
+      label {
+        font-size: 1.3em;
+        color: #80d4b2;
+        font-weight: bold;
+        /* Top, right, bottom, left */
+        margin: 0 0 0 10px;
+      }
+
+      input[type="text"] {
+        cursor: text;
+        padding: 4px 6px;
+        font-size: 18px;
+        width: 80%;
+        min-width: 320px;
+        border-radius: 5px;
+        background: #363535;
+        color: #dcdccc;
+        border: 1px solid #ccc;
+        /* Top, right, bottom, left */
+        margin: 2px 0 0 10px;
+      }
+
+      .button {
+        background-color: #555555;
+        border: 1px solid #dcdccc;
+        border-radius: 5px;
+        color: white;
+        padding: 8px 8px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 12px;
+        cursor: pointer;
+        /* Top, right, bottom, left */
+        margin: 6px 0 0 10px;
+      }
+      /*.NATOCopy {background-color: #3F3F3F;}*/
+      .NATOButton:hover {
+        background-color: #4caf50;
+      }
+
+      /* Button animation */
+      @keyframes gradient {
+        0% {
+          background: radial-gradient(
+            circle at center,
+            rgba(22, 92, 33, 0) 0%,
+            #fff 0%,
+            #fff 100%
+          );
+        }
+        25% {
+          background: radial-gradient(
+            circle at center,
+            rgba(42, 121, 55, 0.3) 24%,
+            #fff 25%,
+            #fff 100%
+          );
+        }
+        50% {
+          background: radial-gradient(
+            circle at center,
+            rgba(111, 185, 123, 0.5) 49%,
+            #fff 50%,
+            #fff 100%
+          );
+        }
+        75% {
+          background: radial-gradient(
+            circle at center,
+            rgba(128, 205, 141, 0.8) 74%,
+            #fff 75%,
+            #fff 100%
+          );
+        }
+        100% {
+          color: #fff;
+          background: radial-gradient(
+            circle at center,
+            rgba(142, 224, 156, 0.8) 99%,
+            #fff 100%,
+            #fff 100%
+          );
+        }
+      }
+
+      /* Calling button animation */
+      button:active {
+        /* Animation duration */
+        animation: gradient 600ms;
+        background: #f88;
+        color: #fff;
+        box-shadow: none;
+      }
+
+      textarea {
+        background: rgba(0, 0, 0, 0);
+        color: #dcdccc;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+        /* Top, right, bottom, left */
+        margin: 6px 0 0 10px;
+        outline: 0;
+        cursor: not-allowed;
+        float: left;
+        height: 320px;
+        width: 32%;
+        min-width: 320px;
+      }
+
+      .list {
+        list-style: none;
+        vertical-align: top;
+        float: left;
+        padding: 0;
+        margin: 20px;
+      }
+      .list li {
+        padding: 2px 0;
+        margin: 0;
+        min-height: 24px;
+        line-height: 20px;
+      }
+      .list b {
+        display: inline-block;
+        width: 30px;
+        text-align: center;
+        background: #0c0c0c;
+        padding: 0 5px;
+        border-radius: 3px;
+        margin: 0 6px 0 0;
+      }
+    </style>
+ 
+    <script language="javascript" type="text/javascript">
+      <!--
+      var codes = {
+        A: "Alpha",
+        B: "Bravo",
+        C: "Charlie",
+        D: "Delta",
+        E: "Echo",
+        F: "Foxtrot",
+        G: "Golf",
+        H: "Hotel",
+        I: "India",
+        J: "Juliet",
+        K: "Kilo",
+        L: "Lima",
+        M: "Mike",
+        N: "November",
+        Ñ: "Ñaño",
+        O: "Oscar",
+        P: "Papa",
+        Q: "Quebec",
+        R: "Romeo",
+        S: "Sierra",
+        T: "Tango",
+        U: "Uniform",
+        V: "Victor",
+        W: "Whiskey",
+        X: "X-Ray",
+        Y: "Yankee",
+        Z: "Zulu",
+        0: "Zero",
+        1: "One",
+        2: "Two",
+        3: "Three",
+        4: "Four",
+        5: "Five",
+        6: "Six",
+        7: "Seven",
+        8: "Eight",
+        9: "Niner",
+        "-": "Minus",
+        "−": "Hyphen",
+        _: "Underscore",
+        "@": "at",
+        ".": "Dot",
+        "+": "Plus",
+        "/": "Slash",
+        ":": "Colon",
+        ",": "Comma",
+        "*": "Asterisk",
+        "\\": "Backslash",
+        "=": "Equal sign",
+        "%": "Percent sign",
+        "?": "Question mark",
+        '"': "Quotation mark",
+        "!": "Exclamation mark",
+		"{": "Open curly bracket",
+		"}": "Close curly bracket",
+        "#": "\Number sign/Hashtag/Octothorpe",
+      };
+
+      function CopyNatoText() {
+        /* Get the text field */
+        var copyText = document.getElementById("convert_word");
+
+        /* Select the text field */
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); /* For mobile devices */
+
+        /* Copy the text inside the text field */
+        navigator.clipboard.writeText(copyText.value);
+
+        /* Alert the copied text */
+        /*alert("Copied the text: " + copyText.value);*/
+        /*alert("Copied");*/
+      }
+
+      function convert(mo) {
+        var mv = mo.value;
+        var cWord = [],
+          cList = [];
+        for (var cI = 0; cI < mv.length; cI++) {
+          var mc = mv.charAt(cI).toUpperCase();
+          if (codes[mc] !== undefined) {
+            cList.push("<li><b>" + mc + "</b>" + codes[mc] + "</li>");
+            cWord.push(codes[mc] + "\n");
+          } else if (cList.length) {
+            cList.push("<li>" + mc + "</li>");
+            cWord.push(mc + "\n");
+          }
+        }
+
+        document.getElementById("convert_list").innerHTML = cList.join("");
+        document.getElementById("convert_word").innerHTML = cWord.join("");
+      }
+
+      window.onload = function () {
+        document.getElementsByTagName("input")[0].focus();
+        var alpha = [],
+          numeric = [];
+        for (var code in codes) {
+          if (String(code).match(/[A-Z]/)) {
+            alpha.push("<li><b>" + code + "</b>" + codes[code] + "</li>");
+          } else {
+            numeric.push("<li><b>" + code + "</b>" + codes[code] + "</li>");
+          }
+        }
+        document.getElementById("convert_alpha").innerHTML = alpha.join("");
+        document.getElementById("convert_numeric").innerHTML = numeric.join("");
+      };
+      //-->
+    </script>
+  </head>
+
+  <body>
+    <label for="phrase">Enter a phrase or word to convert below. </label>
+    <br />
+    <input
+      name="phrase"
+      placeholder="Type here."
+      type="text"
+      onblur="convert(this);"
+      onchange="convert(this);"
+      onfocus="convert(this);"
+      onkeydown="convert(this);"
+      onkeyup="convert(this);"
+      onmousedown="convert(this);"
+      onmousemove="convert(this);"
+      onmouseout="convert(this);"
+      onmouseover="convert(this);"
+      onmouseup="convert(this);"
+      onreset="convert(this);"
+      onselect="convert(this);"
+      onsubmit="convert(this);"
+    />
+    <br />
+    <!-- Used to copy the text -->
+    <button class="button NATOButton" onclick="CopyNatoText()">
+      Copy converted text
+    </button>
+    <!-- Used to reset the controls -->
+    <button
+      class="button NATOButton"
+      onClick="window.location.href=window.location.href"
+    >
+      Reset
+    </button>
+    <br />
+    <textarea id="convert_word" disabled></textarea>
+    <!--<ul class="list" id="convert_alpha"></ul>-->
+    <!--<ul class="list" id="convert_numeric"></ul>-->
+    <ul class="list" id="convert_list"></ul>
+  </body>
+</html>
