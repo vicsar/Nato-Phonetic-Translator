@@ -46,8 +46,7 @@
     }
 
     /* ------------------------------------------------------------------ */
-    /* Focus ring — applies to all interactive elements                    */
-    /* Replaces the browser default which is invisible on dark backgrounds */
+    /* Focus ring — visible on dark backgrounds (WCAG 2.4.7)              */
     /* ------------------------------------------------------------------ */
     input:focus,
     button:focus,
@@ -159,8 +158,7 @@
     }
 
     /* ------------------------------------------------------------------ */
-    /* Output area — flex replaces float for correct reflow at high zoom   */
-    /* (WCAG 1.4.10 Reflow: content must work at 400% without h-scroll)   */
+    /* Output area — flex replaces float for WCAG 1.4.10 Reflow at 400%   */
     /* ------------------------------------------------------------------ */
     .output-area {
       display: flex;
@@ -176,7 +174,7 @@
       border-radius: 5px;
       padding: 10px;
       margin: 0 0 0 10px;
-      /* readonly: cursor:default is appropriate (cursor:not-allowed implied disabled) */
+      /* readonly: cursor:default is appropriate; not-allowed implies disabled */
       cursor: default;
       flex-shrink: 0;
       height: 320px;
@@ -201,7 +199,8 @@
       line-height: 20px;
     }
 
-    /* .char-key replaces <b>: presentational only, hidden from AT */
+    /* .char-key: presentational glyph, hidden from AT via aria-hidden     */
+    /* Screen readers use the adjacent .sr-only span instead               */
     .char-key {
       display: inline-block;
       width: 30px;
@@ -225,7 +224,7 @@
     /* ------------------------------------------------------------------ */
     const codes = Object.freeze({
       /* NATO / ICAO phonetic alphabet */
-      A: "Alpha",
+      A: "Alfa",
       B: "Bravo",
       C: "Charlie",
       D: "Delta",
@@ -234,7 +233,7 @@
       G: "Golf",
       H: "Hotel",
       I: "India",
-      J: "Juliet",
+      J: "Juliett",
       K: "Kilo",
       L: "Lima",
       M: "Mike",
@@ -249,7 +248,7 @@
       U: "Uniform",
       V: "Victor",
       W: "Whiskey",
-      X: "X-Ray",
+      X: "X-ray",
       Y: "Yankee",
       Z: "Zulu",
 
@@ -265,7 +264,10 @@
       8: "Eight",
       9: "Niner",
 
-      /* Whitespace */
+      /* Whitespace
+         NOTE: Tab (\t) is not typeable in the input field — pressing Tab
+         moves browser focus. This mapping is intentionally reachable via
+         paste only (e.g. pasting tab-delimited text). */
       " ": "Space",
       "\t": "Tab",
 
@@ -305,7 +307,21 @@
     });
 
     /* ------------------------------------------------------------------ */
+    /* XSS safety — escapes characters that are HTML-significant           */
+    /* Used before any user-supplied string is injected into innerHTML.    */
+    /* ------------------------------------------------------------------ */
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Copy with visible feedback                                           */
+    /* Keyboard shortcut: Ctrl+Shift+C (see keydown listener in init)      */
     /* ------------------------------------------------------------------ */
     let statusTimer = null;
 
@@ -326,7 +342,7 @@
       } catch (_err) {
         /* Fallback for non-secure contexts (e.g. file://).
            execCommand is deprecated but is the only viable offline
-           fallback as of 2026. textarea is readonly so no state changes needed. */
+           fallback as of 2026. textarea is readonly — no state changes needed. */
         const ta = document.getElementById("convert_word");
         ta.select();
         const ok = document.execCommand("copy");
@@ -400,26 +416,38 @@
         const mc = raw.toUpperCase();
 
         if (codes[mc] !== undefined) {
-          /* Whitespace has no printable glyph: use a visible symbol        */
-          /* aria-hidden keeps the decorative glyph out of the AT tree.     */
-          /* The phonetic word that follows is what screen readers announce. */
-          const glyph = mc === " " ? "·" : mc === "\t" ? "→" : mc;
+          /* Whitespace has no printable glyph — use a visible symbol.
+             aria-hidden on .char-key hides the decorative glyph from AT.
+             .sr-only provides the source character to screen readers so
+             they announce e.g. "A: Alpha" rather than just "Alpha".       */
+          const glyph = mc === " " ? "·" : mc === "\t" ? "→" : escapeHtml(mc);
+          /* srLabel: use the human-readable name for whitespace characters.
+             Emitting the raw space/tab character produces " :" which screen
+             readers announce as nothing. All other characters are safe to
+             use directly as their own label.                               */
+          const srLabel = mc === " " ? "Space" : mc === "\t" ? "Tab" : escapeHtml(mc);
           cList.push(
             `<li>` +
             `<span class="char-key" aria-hidden="true">${glyph}</span>` +
-            `${codes[mc]}` +
+            `<span class="sr-only">${srLabel}:</span>` +
+            `${escapeHtml(codes[mc])}` +
             `</li>`
           );
           cWord.push(codes[mc] + "\n");
         } else {
-          /* Unknown character: shown explicitly in red rather than silently discarded */
+          /* Unknown character: shown explicitly in red rather than silently
+             discarded. escapeHtml() prevents injection via crafted input.  */
+          const safeRaw = escapeHtml(raw);
           cList.push(
             `<li class="unknown">` +
             `<span class="char-key" aria-hidden="true">?</span>` +
-            `${raw} (unknown)` +
+            `<span class="sr-only">Unknown character:</span>` +
+            `${safeRaw} (unknown)` +
             `</li>`
           );
-          cWord.push(`[${raw}]\n`);
+          /* Use plain speakable text — bracket notation around an
+             unpronounceable character causes speech synthesis to skip it. */
+          cWord.push(`unknown character\n`);
         }
       }
 
@@ -436,6 +464,17 @@
         const btn = document.getElementById("btn-speak");
         if (btn) btn.style.display = "none";
       }
+
+      /* Keyboard shortcut: Ctrl+Shift+C — copy without leaving the input.
+         Chosen to avoid conflicts with standard browser shortcuts.
+         Works from anywhere on the page.                                  */
+      document.addEventListener("keydown", function (e) {
+        if (e.ctrlKey && e.shiftKey && e.key === "C") {
+          e.preventDefault();
+          CopyNatoText();
+        }
+      });
+
       document.getElementById("phrase").focus();
     };
   </script>
@@ -446,34 +485,38 @@
   <br />
   <input id="phrase" name="phrase" type="text" placeholder="Type here." maxlength="500" autocomplete="off"
     autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Text to convert to NATO phonetic alphabet"
-    oninput="convert(this);" />
+    aria-describedby="shortcut-hint" oninput="convert(this);" />
+  <!-- sr-only hint: informs AT users of the available keyboard shortcut   -->
+  <span id="shortcut-hint" class="sr-only">
+    Press Ctrl+Shift+C to copy the converted text.
+  </span>
   <br />
 
-  <button class="button NATOButton" onclick="CopyNatoText()" aria-label="Copy converted NATO text to clipboard">Copy
-    converted text</button>
+  <button class="button NATOButton" onclick="CopyNatoText()"
+    aria-label="Copy converted NATO text to clipboard (Ctrl+Shift+C)">Copy converted text</button>
 
   <button class="button NATOButton" onclick="resetAll()" aria-label="Clear input and reset output">Reset</button>
 
   <button id="btn-speak" class="button NATOButton" onclick="readAloud()" aria-label="Read NATO phonetic output aloud"
     aria-pressed="false">Read aloud</button>
 
-  <!-- role="status" + aria-live="polite": announces copy/speech feedback  -->
-  <!-- without interrupting the user's current AT focus                    -->
+  <!-- role="status" + aria-live="polite": announces feedback without      -->
+  <!-- interrupting the user's current screen reader focus                 -->
   <span id="copy-status" role="status" aria-live="polite"></span>
 
   <br />
 
-  <!-- output-area: flex container replaces float layout for WCAG reflow  -->
+  <!-- output-area: flex container for WCAG 1.4.10 Reflow compliance      -->
   <div class="output-area">
 
-    <!-- readonly (not disabled): keeps element in accessibility tree      -->
-    <!-- and focusable by keyboard/AT while still preventing editing.      -->
-    <!-- aria-live removed: the <ul> below is the single live region.      -->
+    <!-- readonly (not disabled): keeps element in the accessibility tree  -->
+    <!-- and keyboard-focusable while preventing editing.                  -->
+    <!-- aria-live omitted: the <ul> below is the single live region.      -->
     <textarea id="convert_word" readonly aria-label="NATO phonetic output, plain text"></textarea>
 
-    <!-- Single aria-live region for screen reader announcements.          -->
-    <!-- aria-atomic="false": only changed items are announced, not the    -->
-    <!-- entire list, reducing verbosity during fast typing.               -->
+    <!-- Single aria-live region.                                          -->
+    <!-- aria-atomic="false": only new/changed items are read aloud,      -->
+    <!-- not the entire list on every keystroke.                           -->
     <ul class="list" id="convert_list" role="list" aria-label="NATO phonetic character breakdown" aria-live="polite"
       aria-atomic="false"></ul>
 
