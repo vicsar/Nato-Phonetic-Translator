@@ -32,7 +32,6 @@
       font-size: 1.3em;
       color: #80d4b2;
       font-weight: bold;
-      /* Top, right, bottom, left */
       margin: 0 0 0 10px;
     }
 
@@ -46,7 +45,6 @@
       background: #363535;
       color: #dcdccc;
       border: 1px solid #ccc;
-      /* Top, right, bottom, left */
       margin: 2px 0 0 10px;
     }
 
@@ -61,7 +59,6 @@
       display: inline-block;
       font-size: 12px;
       cursor: pointer;
-      /* Top, right, bottom, left */
       margin: 6px 0 0 10px;
     }
 
@@ -69,48 +66,58 @@
       background-color: #4caf50;
     }
 
+    /* Copy status feedback */
+    #copy-status {
+      display: inline-block;
+      margin: 6px 0 0 14px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      vertical-align: middle;
+    }
+
+    #copy-status.visible {
+      opacity: 1;
+    }
+
+    #copy-status.success {
+      color: #80d4b2;
+    }
+
+    #copy-status.error {
+      color: #f88;
+    }
+
     /* Button animation */
     @keyframes gradient {
       0% {
         background: radial-gradient(circle at center,
-            rgba(22, 92, 33, 0) 0%,
-            #fff 0%,
-            #fff 100%);
+            rgba(22, 92, 33, 0) 0%, #fff 0%, #fff 100%);
       }
 
       25% {
         background: radial-gradient(circle at center,
-            rgba(42, 121, 55, 0.3) 24%,
-            #fff 25%,
-            #fff 100%);
+            rgba(42, 121, 55, 0.3) 24%, #fff 25%, #fff 100%);
       }
 
       50% {
         background: radial-gradient(circle at center,
-            rgba(111, 185, 123, 0.5) 49%,
-            #fff 50%,
-            #fff 100%);
+            rgba(111, 185, 123, 0.5) 49%, #fff 50%, #fff 100%);
       }
 
       75% {
         background: radial-gradient(circle at center,
-            rgba(128, 205, 141, 0.8) 74%,
-            #fff 75%,
-            #fff 100%);
+            rgba(128, 205, 141, 0.8) 74%, #fff 75%, #fff 100%);
       }
 
       100% {
         color: #fff;
         background: radial-gradient(circle at center,
-            rgba(142, 224, 156, 0.8) 99%,
-            #fff 100%,
-            #fff 100%);
+            rgba(142, 224, 156, 0.8) 99%, #fff 100%, #fff 100%);
       }
     }
 
-    /* Calling button animation */
     button:active {
-      /* Animation duration */
       animation: gradient 600ms;
       background: #f88;
       color: #fff;
@@ -123,7 +130,6 @@
       border: 1px solid #ccc;
       border-radius: 5px;
       padding: 10px;
-      /* Top, right, bottom, left */
       margin: 6px 0 0 10px;
       outline: 0;
       cursor: not-allowed;
@@ -157,10 +163,18 @@
       border-radius: 3px;
       margin: 0 6px 0 0;
     }
+
+    /* Unknown character indicator */
+    .list li.unknown {
+      color: #f88;
+      font-style: italic;
+    }
   </style>
 
   <script>
-    var codes = {
+    /* Frozen: prevents accidental mutation at runtime */
+    const codes = Object.freeze({
+      /* NATO / ICAO phonetic alphabet */
       A: "Alpha",
       B: "Bravo",
       C: "Charlie",
@@ -175,7 +189,7 @@
       L: "Lima",
       M: "Mike",
       N: "November",
-      Ñ: "Ñaño",
+      Ñ: "Ñaño",         /* non-standard, retained by author */
       O: "Oscar",
       P: "Papa",
       Q: "Quebec",
@@ -188,6 +202,8 @@
       X: "X-Ray",
       Y: "Yankee",
       Z: "Zulu",
+
+      /* Digits */
       0: "Zero",
       1: "One",
       2: "Two",
@@ -198,9 +214,15 @@
       7: "Seven",
       8: "Eight",
       9: "Niner",
+
+      /* Whitespace */
+      " ": "Space",
+      "\t": "Tab",
+
+      /* Punctuation & symbols */
       "-": "Hyphen-minus",
       "−": "Minus sign",
-      _: "Underscore",
+      "_": "Underscore",
       "@": "At",
       ".": "Dot",
       "+": "Plus",
@@ -213,67 +235,116 @@
       "%": "Percent sign",
       "?": "Question mark",
       '"': "Quotation mark",
+      "'": "Single quote",
+      "`": "Backtick",
       "!": "Exclamation mark",
       "{": "Open curly bracket",
       "}": "Close curly bracket",
+      "(": "Open parenthesis",
+      ")": "Close parenthesis",
+      "[": "Open square bracket",
+      "]": "Close square bracket",
+      "<": "Less-than / Open angle bracket",
+      ">": "Greater-than / Close angle bracket",
       "#": "Number sign/Hashtag/Octothorpe",
-    };
+      "&": "Ampersand",
+      "|": "Pipe/Vertical bar",
+      "^": "Caret",
+      "~": "Tilde",
+      ";": "Semicolon",
+    });
+
+    /* -- Copy with visible feedback ------------------------------------ */
+    let statusTimer = null;
+
+    function showCopyStatus(success) {
+      const el = document.getElementById("copy-status");
+      if (statusTimer) clearTimeout(statusTimer);
+      el.textContent = success ? "✓ Copied" : "✗ Copy failed";
+      el.className = "visible " + (success ? "success" : "error");
+      statusTimer = setTimeout(() => { el.className = ""; }, 2000);
+    }
 
     async function CopyNatoText() {
-      var text = document.getElementById("convert_word").value;
+      const text = document.getElementById("convert_word").value;
+      if (!text) return;
       try {
         await navigator.clipboard.writeText(text);
-      } catch (err) {
+        showCopyStatus(true);
+      } catch (_err) {
         /* Fallback for non-secure contexts (e.g. file://) */
-        var ta = document.getElementById("convert_word");
+        /* document.execCommand is deprecated but remains the only viable
+           offline fallback as of 2026. */
+        const ta = document.getElementById("convert_word");
         ta.removeAttribute("disabled");
         ta.select();
-        document.execCommand("copy");
+        const ok = document.execCommand("copy");
         ta.setAttribute("disabled", true);
+        showCopyStatus(ok);
       }
     }
 
+    /* -- Reset without page reload ------------------------------------- */
+    function resetAll() {
+      const input = document.getElementById("phrase");
+      input.value = "";
+      /* oninput does not fire on programmatic .value changes,
+         so convert() must be called explicitly here. */
+      convert(input);
+      input.focus();
+    }
+
+    /* -- Conversion ---------------------------------------------------- */
     function convert(mo) {
-      var mv = mo.value;
-      var cWord = [],
-        cList = [];
-      for (var cI = 0; cI < mv.length; cI++) {
-        var mc = mv.charAt(cI).toUpperCase();
+      if (!mo) return;
+      const mv = mo.value;
+      const cWord = [];
+      const cList = [];
+
+      for (let i = 0; i < mv.length; i++) {
+        const raw = mv.charAt(i);
+        const mc = raw.toUpperCase();
+
         if (codes[mc] !== undefined) {
-          cList.push("<li><b>" + mc + "</b>" + codes[mc] + "</li>");
+          /* Use a visible glyph for whitespace characters in the key column */
+          const display = mc === " " ? "·" : mc === "\t" ? "→" : mc;
+          cList.push(`<li><b>${display}</b>${codes[mc]}</li>`);
           cWord.push(codes[mc] + "\n");
-        } else if (cList.length) {
-          cList.push("<li>" + mc + "</li>");
-          cWord.push(mc + "\n");
+        } else {
+          /* Unknown character: show explicitly rather than silently discard */
+          cList.push(`<li class="unknown"><b>?</b>${raw} (unknown)</li>`);
+          cWord.push(`[${raw}]\n`);
         }
       }
 
       document.getElementById("convert_list").innerHTML = cList.join("");
-      /* FIX: use .value, not .innerHTML, to set textarea content */
       document.getElementById("convert_word").value = cWord.join("");
     }
 
+    /* -- Init ---------------------------------------------------------- */
     window.onload = function () {
-      document.getElementsByTagName("input")[0].focus();
+      document.getElementById("phrase").focus();
     };
   </script>
 </head>
 
 <body>
-  <label for="phrase">Enter a phrase or word to convert below. </label>
+  <label for="phrase">Enter a phrase or word to convert below.</label>
   <br />
-  <!-- FIX: replaced 13 redundant event handlers with single oninput -->
-  <input name="phrase" placeholder="Type here." type="text" oninput="convert(this);" />
+  <input id="phrase" name="phrase" type="text" placeholder="Type here." maxlength="500" autocomplete="off"
+    autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Text to convert to NATO phonetic alphabet"
+    oninput="convert(this);" />
   <br />
-  <button class="button NATOButton" onclick="CopyNatoText()">
+  <button class="button NATOButton" onclick="CopyNatoText()" aria-label="Copy converted NATO text to clipboard">
     Copy converted text
   </button>
-  <button class="button NATOButton" onClick="window.location.href=window.location.href">
+  <button class="button NATOButton" onclick="resetAll()" aria-label="Clear input and reset output">
     Reset
   </button>
+  <span id="copy-status" role="status" aria-live="polite"></span>
   <br />
-  <textarea id="convert_word" disabled></textarea>
-  <ul class="list" id="convert_list"></ul>
+  <textarea id="convert_word" disabled aria-label="NATO phonetic output" aria-live="polite"></textarea>
+  <ul class="list" id="convert_list" role="list" aria-label="NATO phonetic character breakdown"></ul>
 </body>
 
 </html>
